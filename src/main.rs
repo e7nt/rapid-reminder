@@ -1,18 +1,10 @@
-//! Rapid Reminder (`rr`) — terminal-native natural language reminders.
+//! Rapid Reminder (`rr`) — binary entry point.
 //!
-//! See `SPEC.md` for the full specification. This binary only wires the CLI to
-//! the parser, renderer, storage, notifier, and daemon modules. Each of those
-//! lives behind a clean boundary so parsing, rendering, storage, notification,
-//! and scheduling stay independent.
+//! The reminder engine lives in the `rapid_reminder` library crate; this binary
+//! only wires the command-line interface to it. See `SPEC.md` for the full
+//! specification.
 
 mod cli;
-mod daemon;
-mod ids;
-mod notify;
-mod parser;
-mod render;
-mod storage;
-mod time;
 
 use anyhow::Result;
 

@@ -5,7 +5,9 @@
 //! wire them to real behavior.
 
 use anyhow::Result;
+use chrono::Local;
 use clap::{CommandFactory, Parser, Subcommand};
+use rapid_reminder::parser::{ParsedReminder, parse_reminder};
 
 /// Set reliable reminders from messy human text without breaking terminal flow.
 #[derive(Debug, Parser)]
@@ -57,9 +59,31 @@ fn run_default(words: &[String]) -> Result<()> {
     }
 
     let text = words.join(" ");
-    println!("rr: reminder parsing is not implemented yet (Stage 0 skeleton).");
-    println!("    would set a reminder from: {text:?}");
-    Ok(())
+    match parse_reminder(&text, Local::now()) {
+        Ok(reminder) => {
+            print_understood(&reminder);
+            Ok(())
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            if let Some(hint) = error.hint() {
+                eprintln!("{hint}");
+            }
+            std::process::exit(1);
+        }
+    }
+}
+
+/// Show what the parser understood. Storage and colored highlighting arrive in
+/// later stages; for now this is an honest plain-text preview.
+fn print_understood(reminder: &ParsedReminder) {
+    println!("Understood:");
+    println!("  message:    {}", reminder.message);
+    println!(
+        "  due:        {}",
+        reminder.due_at.format("%a %Y-%m-%d %H:%M")
+    );
+    println!("  confidence: {:?}", reminder.confidence);
 }
 
 /// Placeholder for subcommands that later stages implement.
