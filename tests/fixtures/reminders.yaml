@@ -1,0 +1,264 @@
+# Natural-language reminder fixtures.
+#
+# Each entry is one of:
+#   - a success case with `expected: { offset_seconds, message, time_span, confidence }`
+#   - an error case with `error: <snake_case ParseError name>`
+#
+# `now` is an RFC 3339 timestamp; assertions compare a duration, so its zone is
+# irrelevant. `time_span` is the exact substring the parser marked as the time,
+# preserving the user's original casing.
+#
+# This corpus is meant to grow. Group new phrases under a commented category so
+# contributors can see what each block is exercising.
+
+# ── Bare relative time: minutes ───────────────────────────────────────────────
+- input: "in 15 mins check build"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 900, message: "check build", time_span: "15 mins", confidence: "high" }
+
+- input: "in 5 mins stretch"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 300, message: "stretch", time_span: "5 mins", confidence: "high" }
+
+- input: "in 1 min ping"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 60, message: "ping", time_span: "1 min", confidence: "high" }
+
+- input: "in 90 mins review"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 5400, message: "review", time_span: "90 mins", confidence: "high" }
+
+- input: "in 30 minutes switch laundry"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 1800, message: "switch laundry", time_span: "30 minutes", confidence: "high" }
+
+- input: "in 7 mins tea"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 420, message: "tea", time_span: "7 mins", confidence: "high" }
+
+- input: "in 100 mins long task"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 6000, message: "long task", time_span: "100 mins", confidence: "high" }
+
+- input: "in 11 mins stretch legs"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 660, message: "stretch legs", time_span: "11 mins", confidence: "high" }
+
+- input: "in 22 mins call mom"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 1320, message: "call mom", time_span: "22 mins", confidence: "high" }
+
+- input: "in 25 mins check deployment status"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 1500, message: "check deployment status", time_span: "25 mins", confidence: "high" }
+
+- input: "in 40 mins water the garden"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 2400, message: "water the garden", time_span: "40 mins", confidence: "high" }
+
+- input: "in 2 minutes save file"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 120, message: "save file", time_span: "2 minutes", confidence: "high" }
+
+- input: "in 480 mins end shift"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 28800, message: "end shift", time_span: "480 mins", confidence: "high" }
+
+- input: "in 5 mins check the CI pipeline output"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 300, message: "check the CI pipeline output", time_span: "5 mins", confidence: "high" }
+
+- input: "in 60 mins hydrate"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 3600, message: "hydrate", time_span: "60 mins", confidence: "high" }
+
+# ── Bare relative time: hours ─────────────────────────────────────────────────
+- input: "in 2 hours stretch"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 7200, message: "stretch", time_span: "2 hours", confidence: "high" }
+
+- input: "in 1 hour call Sam"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 3600, message: "call Sam", time_span: "1 hour", confidence: "high" }
+
+- input: "in 6 hours sleep check"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 21600, message: "sleep check", time_span: "6 hours", confidence: "high" }
+
+- input: "in 12 hours take medicine"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 43200, message: "take medicine", time_span: "12 hours", confidence: "high" }
+
+- input: "in 8 hours wake up"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 28800, message: "wake up", time_span: "8 hours", confidence: "high" }
+
+- input: "in 4 hrs meeting"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 14400, message: "meeting", time_span: "4 hrs", confidence: "high" }
+
+- input: "in 2 hr lunch"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 7200, message: "lunch", time_span: "2 hr", confidence: "high" }
+
+# ── Bare relative time: seconds and days ──────────────────────────────────────
+- input: "in 30 secs poke"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 30, message: "poke", time_span: "30 secs", confidence: "high" }
+
+- input: "in 45 seconds refresh"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 45, message: "refresh", time_span: "45 seconds", confidence: "high" }
+
+- input: "in 1 second blink"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 1, message: "blink", time_span: "1 second", confidence: "high" }
+
+- input: "in 90 seconds boil"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 90, message: "boil", time_span: "90 seconds", confidence: "high" }
+
+- input: "in 1 day follow up"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 86400, message: "follow up", time_span: "1 day", confidence: "high" }
+
+- input: "in 2 days submit report"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 172800, message: "submit report", time_span: "2 days", confidence: "high" }
+
+- input: "in 3 days renew subscription"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 259200, message: "renew subscription", time_span: "3 days", confidence: "high" }
+
+# ── Glued duration tokens (e.g. 10m, 3h) ──────────────────────────────────────
+- input: "in 10m check build"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 600, message: "check build", time_span: "10m", confidence: "high" }
+
+- input: "in 3h deploy"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 10800, message: "deploy", time_span: "3h", confidence: "high" }
+
+- input: "in 2m coffee"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 120, message: "coffee", time_span: "2m", confidence: "high" }
+
+- input: "in 15min break"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 900, message: "break", time_span: "15min", confidence: "high" }
+
+# ── Word count: a / an means one ──────────────────────────────────────────────
+- input: "in a minute check logs"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 60, message: "check logs", time_span: "a minute", confidence: "high" }
+
+- input: "in an hour water plants"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 3600, message: "water plants", time_span: "an hour", confidence: "high" }
+
+# ── Leading filler and connectors (remind me … to/about/that …) ───────────────
+- input: "remind me in 15 mins to check build"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 900, message: "check build", time_span: "15 mins", confidence: "high" }
+
+- input: "remind me in 1 hour to call Sam"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 3600, message: "call Sam", time_span: "1 hour", confidence: "high" }
+
+- input: "ping me in 30 minutes about laundry"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 1800, message: "laundry", time_span: "30 minutes", confidence: "high" }
+
+- input: "please remind me in 20 mins to drink water"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 1200, message: "drink water", time_span: "20 mins", confidence: "high" }
+
+- input: "hey remind me in 45 mins to join standup"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 2700, message: "join standup", time_span: "45 mins", confidence: "high" }
+
+- input: "remind me in 5 mins that the oven is on"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 300, message: "the oven is on", time_span: "5 mins", confidence: "high" }
+
+- input: "in 10 mins to email boss"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 600, message: "email boss", time_span: "10 mins", confidence: "high" }
+
+- input: "remind me in 2 hours about the dentist appointment"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 7200, message: "the dentist appointment", time_span: "2 hours", confidence: "high" }
+
+- input: "ping me in 15 mins to review the PR"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 900, message: "review the PR", time_span: "15 mins", confidence: "high" }
+
+# ── Case-insensitivity and preserved casing ───────────────────────────────────
+- input: "IN 15 MINS CHECK BUILD"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 900, message: "CHECK BUILD", time_span: "15 MINS", confidence: "high" }
+
+- input: "Remind me in 3 mins to stand up"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 180, message: "stand up", time_span: "3 mins", confidence: "high" }
+
+# ── UTF-8 messages ────────────────────────────────────────────────────────────
+- input: "in 3 mins café break"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 180, message: "café break", time_span: "3 mins", confidence: "high" }
+
+- input: "in 5 mins déjeuner"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 300, message: "déjeuner", time_span: "5 mins", confidence: "high" }
+
+# ── Unfamiliar leading words: assumed filler, lower confidence ─────────────────
+- input: "wibble in 5 mins check logs"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 300, message: "check logs", time_span: "5 mins", confidence: "medium" }
+
+- input: "urgent in 10 mins deploy"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 600, message: "deploy", time_span: "10 mins", confidence: "medium" }
+
+# ── Error cases: the parser refuses to guess ──────────────────────────────────
+- input: ""
+  now: "2026-07-04T12:00:00+05:30"
+  error: "empty_input"
+
+- input: "   "
+  now: "2026-07-04T12:00:00+05:30"
+  error: "empty_input"
+
+- input: "remind me later"
+  now: "2026-07-04T12:00:00+05:30"
+  error: "missing_time"
+
+- input: "check the build"
+  now: "2026-07-04T12:00:00+05:30"
+  error: "missing_time"
+
+- input: "in 15 mins"
+  now: "2026-07-04T12:00:00+05:30"
+  error: "missing_message"
+
+- input: "in 15 mins to"
+  now: "2026-07-04T12:00:00+05:30"
+  error: "missing_message"
+
+# Absolute-time phrasing is not supported until a later stage.
+- input: "tomorrow at 9am review PR"
+  now: "2026-07-04T12:00:00+05:30"
+  error: "missing_time"
+
+- input: "at 5pm call Sam"
+  now: "2026-07-04T12:00:00+05:30"
+  error: "missing_time"
+
+# Spelled-out numbers beyond a/an are not supported yet.
+- input: "in five mins check"
+  now: "2026-07-04T12:00:00+05:30"
+  error: "missing_time"
+
+- input: "in mins check"
+  now: "2026-07-04T12:00:00+05:30"
+  error: "missing_time"
