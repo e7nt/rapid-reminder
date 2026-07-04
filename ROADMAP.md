@@ -38,14 +38,19 @@ cargo test           # runs (0 tests OK)
 
 The heart of the product. Text in → structured reminder + byte-offset spans out.
 
-- [ ] Define types: `ParsedReminder`, `ParsedSpan`, `SpanKind`, `Confidence` (SPEC §6.2)
-- [ ] Define `ParseError` with `thiserror` (`EmptyInput`, `MissingTime`, `MissingMessage`, …)
-- [ ] `parse_reminder(input, now) -> Result<ParsedReminder, ParseError>`
-- [ ] Relative patterns: `in 15 mins`, `in 10m`, `in 2 hours`, `in 1h`, `in 30 minutes`
-- [ ] Filler stripping: `remind me`, `to`, `about`, `please`, `ping me`
-- [ ] Spans are correct byte offsets on UTF-8 boundaries
-- [ ] Error cases return helpful messages (SPEC §6.5)
-- [ ] Unit tests for duration parsing, span extraction, error paths
+- [x] Define types: `ParsedReminder`, `ParsedSpan`, `SpanKind`, `Confidence` (SPEC §6.2)
+- [x] Define `ParseError` with `thiserror` (`EmptyInput`, `MissingTime`, `MissingMessage`, `TimeOutOfRange`)
+- [x] `parse_reminder(input, now) -> Result<ParsedReminder, ParseError>`
+- [x] Relative patterns: `in 15 mins`, `in 10m`, `in 2 hours`, `in 1h`, `in 30 minutes` (+ seconds/days, `a`/`an`)
+- [x] Filler stripping: `remind me`, `to`, `about`, `please`, `ping me`
+- [x] Spans are correct byte offsets on UTF-8 boundaries
+- [x] Error cases return helpful messages (SPEC §6.5)
+- [x] Unit tests for duration parsing, span extraction, error paths
+
+> Notes: split into a **library crate + thin `rr` binary** so tests (and Stage 2
+> fixtures) can drive the engine directly. `Confidence::Low` is defined per SPEC
+> but not yet produced — it arrives with ambiguous absolute parsing (Stage 8).
+> `rr <text>` now shows an honest plain-text preview; colored highlighting is Stage 3.
 
 **Deliverable (testable):**
 ```bash
