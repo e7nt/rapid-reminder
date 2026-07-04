@@ -65,10 +65,10 @@ cargo test parser
 
 Make the natural-language corpus a first-class, growable asset.
 
-- [ ] `tests/fixtures/reminders.yaml` schema (input, now, expected offset/message/span/confidence)
-- [ ] Test loader that runs every fixture through `parse_reminder`
-- [ ] Seed **50** initial fixtures across relative-time phrasings
-- [ ] Clear failure output showing input + expected vs actual
+- [x] `tests/fixtures/reminders.yaml` schema (input, now, expected offset/message/span/confidence; plus `error:` cases)
+- [x] Test loader that runs every fixture through `parse_reminder`
+- [x] Seed **50** initial fixtures across relative-time phrasings (50 success + 10 error = 60)
+- [x] Clear failure output showing input + expected vs actual (aggregated, all failures at once)
 
 **Deliverable (testable):**
 ```bash
