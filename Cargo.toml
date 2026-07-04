@@ -1,0 +1,22 @@
+[package]
+name = "rapid-reminder"
+version = "0.1.0"
+edition = "2024"
+description = "Set reliable reminders from messy human text without breaking terminal flow."
+license = "MIT OR Apache-2.0"
+
+[[bin]]
+name = "rr"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0.103"
+chrono = "0.4.45"
+clap = { version = "4.6.1", features = ["derive"] }
+thiserror = "2.0.18"
+
+[dev-dependencies]
+insta = "1.48.0"
+proptest = "1.11.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_yaml = "0.9.34"

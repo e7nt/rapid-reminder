@@ -1,0 +1,225 @@
+# Rapid Reminder — Implementation Roadmap
+
+This is the build checklist for `rr`. Work proceeds in **stages**. Each stage is
+small, self-contained, and ends in a **testable deliverable** — something you can
+run and verify before moving on. No stage depends on unfinished work in a later
+stage.
+
+Legend: `[ ]` todo · `[~]` in progress · `[x]` done
+
+Related docs: [`SPEC.md`](./SPEC.md) · [`MOTIVATION.md`](./MOTIVATION.md) · [`AGENT.md`](./AGENT.md) · [`CLAUDE.md`](./CLAUDE.md)
+
+---
+
+## Stage 0 — Project skeleton & toolchain
+
+Get a compiling, testable project with the right structure before any real logic.
+
+- [x] `cargo init --name rapid-reminder` (binary `rr` via `[[bin]]`)
+- [x] Add dependencies: `clap` (derive), `chrono`, `thiserror`, `anyhow`
+- [x] Add dev-deps: `insta`, `proptest`, `serde` + `serde_yaml`
+- [x] Create module skeleton from SPEC §12.2 (empty stubs that compile):
+      `cli`, `parser/`, `render/`, `storage/`, `notify/`, `daemon`, `time`, `ids`
+- [x] `rr --version` and `rr --help` wired through `clap`
+- [x] `.gitignore` (`/target`, `*.db`), commit `.pre-commit-config.yaml`
+- [x] First commit
+
+**Deliverable (testable):**
+```bash
+cargo build          # compiles clean
+cargo test           # runs (0 tests OK)
+./target/debug/rr --version
+./target/debug/rr --help
+```
+
+---
+
+## Stage 1 — Relative-time parser (deterministic core)
+
+The heart of the product. Text in → structured reminder + byte-offset spans out.
+
+- [ ] Define types: `ParsedReminder`, `ParsedSpan`, `SpanKind`, `Confidence` (SPEC §6.2)
+- [ ] Define `ParseError` with `thiserror` (`EmptyInput`, `MissingTime`, `MissingMessage`, …)
+- [ ] `parse_reminder(input, now) -> Result<ParsedReminder, ParseError>`
+- [ ] Relative patterns: `in 15 mins`, `in 10m`, `in 2 hours`, `in 1h`, `in 30 minutes`
+- [ ] Filler stripping: `remind me`, `to`, `about`, `please`, `ping me`
+- [ ] Spans are correct byte offsets on UTF-8 boundaries
+- [ ] Error cases return helpful messages (SPEC §6.5)
+- [ ] Unit tests for duration parsing, span extraction, error paths
+
+**Deliverable (testable):**
+```bash
+cargo test parser
+# Unit tests prove: "remind me in 15 mins to check build" ->
+#   due_at = now + 900s, message = "check build", time_span = "15 mins"
+```
+
+---
+
+## Stage 2 — Fixture-backed parser test harness
+
+Make the natural-language corpus a first-class, growable asset.
+
+- [ ] `tests/fixtures/reminders.yaml` schema (input, now, expected offset/message/span/confidence)
+- [ ] Test loader that runs every fixture through `parse_reminder`
+- [ ] Seed **50** initial fixtures across relative-time phrasings
+- [ ] Clear failure output showing input + expected vs actual
+
+**Deliverable (testable):**
+```bash
+cargo test fixtures   # all 50 fixtures pass; adding a bad fixture fails loudly
+```
+
+---
+
+## Stage 3 — Highlighted terminal output
+
+Turn parsing into a visible contract so users trust it.
+
+- [ ] `render_highlighted(input, spans, color) -> String`
+- [ ] `ColorMode { Auto, Always, Never }`; respect `NO_COLOR` and `--color`
+- [ ] Time span green, message cyan, filler dimmed (SPEC §7)
+- [ ] Never panics on malformed spans (skip/err safely)
+- [ ] Snapshot tests (`insta`) with color disabled
+
+**Deliverable (testable):**
+```bash
+cargo test render
+NO_COLOR=1 ./target/debug/rr "in 15 mins check build"   # plain highlighted output
+./target/debug/rr "in 15 mins check build"              # colored "Understood:" block
+```
+
+---
+
+## Stage 4 — Local SQLite storage
+
+Persist reminders reliably with a stable, migratable schema.
+
+- [ ] `rusqlite` dependency; DB at platform data dir (`~/.local/share/rapid-reminder/reminders.db`)
+- [ ] `Reminder`, `ReminderId`, `ReminderStatus` types (SPEC §8)
+- [ ] Schema migration v1; stable user-visible IDs
+- [ ] `insert`, `list_pending`, `get`, `cancel`, `mark_fired`
+- [ ] Tests use a temp DB (no touching real data)
+- [ ] Wire `rr <text>` to actually store a reminder
+
+**Deliverable (testable):**
+```bash
+cargo test storage
+./target/debug/rr "in 15 mins check build"   # prints "✓ Reminder set" and persists
+```
+
+---
+
+## Stage 5 — `list` and `cancel` commands
+
+Close the manual lifecycle before automating firing.
+
+- [ ] `rr list` — table of pending reminders (ID / Due / Message)
+- [ ] `rr cancel <id>` — marks cancelled, confirms
+- [ ] Snapshot tests for both outputs
+
+**Deliverable (testable):**
+```bash
+./target/debug/rr "in 15 mins check build"
+./target/debug/rr list      # shows the reminder with an ID
+./target/debug/rr cancel 1  # "✓ Cancelled reminder 1"; list no longer shows it
+```
+
+---
+
+## Stage 6 — Notifications behind a trait
+
+Native desktop notifications, fully testable without a GUI.
+
+- [ ] `Notifier` trait: `notify(title, body) -> Result<(), NotifyError>`
+- [ ] `DesktopNotifier` via `notify-rust`
+- [ ] `FakeNotifier` recording calls, for tests
+- [ ] Failures logged and surfaced (used later by `doctor`)
+
+**Deliverable (testable):**
+```bash
+cargo test notify          # fake notifier asserts title/body
+# Manual: a tiny `rr test-notify` (or unit harness) pops a real desktop notification
+```
+
+---
+
+## Stage 7 — Daemon (fires due reminders)
+
+The piece that makes reminders actually arrive.
+
+- [ ] `rr daemon` polls `list_pending` at a sane interval
+- [ ] Fires only when due; `mark_fired` only after success; no duplicates
+- [ ] Clean shutdown on SIGINT/SIGTERM
+- [ ] Scheduling logic independent of CLI parsing; testable with fake clock + fake notifier
+
+**Deliverable (testable):**
+```bash
+cargo test daemon
+./target/debug/rr "in 1 min check build" && ./target/debug/rr daemon
+# ~1 min later: a real desktop notification fires exactly once
+```
+
+---
+
+## Stage 8 — Absolute & day-phrase parsing
+
+Broaden the parser once the pipeline is proven end-to-end.
+
+- [ ] Absolute: `at 5pm`, `at 17:30`, `tomorrow at 9am`
+- [ ] Day phrases: `tomorrow morning`, `tonight`, `next monday at 10am`
+- [ ] Ambiguity handling: don't silently guess; downgrade `Confidence`
+- [ ] Grow fixtures toward **100+**; add `proptest` for generated relative inputs
+
+**Deliverable (testable):**
+```bash
+cargo test              # 100+ fixtures + property tests green
+./target/debug/rr "tomorrow at 9am review PR"   # correct due date, highlighted
+```
+
+---
+
+## Stage 9 — `doctor` & hardening
+
+- [ ] `rr doctor` checks notification support, storage access, daemon status
+- [ ] Wire full pre-commit (`fmt`, `clippy -D warnings`, `test`, `deny`/`audit`/`machete` if present)
+- [ ] GitHub Actions CI running the same checks
+- [ ] `cargo clippy --all-targets --all-features -- -D warnings` clean
+
+**Deliverable (testable):**
+```bash
+./target/debug/rr doctor       # reports OK/failing subsystems
+pre-commit run --all-files     # all hooks pass
+```
+
+---
+
+## Stage 10 — Open-source polish
+
+- [ ] `README.md` with animated/asciinema demo and quick start
+- [ ] `CONTRIBUTING.md` (esp. how to add fixtures)
+- [ ] Install instructions (`cargo install`, prebuilt binaries)
+- [ ] Release workflow (tags → built binaries)
+
+**Deliverable (testable):**
+```bash
+cargo install --path .   # installs `rr` to ~/.cargo/bin
+rr "in 5 mins ship it"   # works from a clean shell
+```
+
+---
+
+## Future (post-v1, from SPEC §15)
+
+- [ ] Optional LLM fallback for low-confidence parses (never required)
+- [ ] Snooze command · recurring reminders · shell completions
+- [ ] "Notify when this long command finishes" integration
+- [ ] systemd / launchd / Task Scheduler integration · import/export
+
+---
+
+### Working agreement
+- Deterministic parser before any LLM. Reliability over novelty.
+- Every behavior change ships with a test or fixture.
+- Keep parser / render / storage / notify / daemon boundaries clean.
+- Run `cargo fmt && cargo clippy -D warnings && cargo test` before each commit.

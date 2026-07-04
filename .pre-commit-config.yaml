@@ -1,0 +1,44 @@
+repos:
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: cargo fmt
+        entry: cargo fmt --all -- --check
+        language: system
+        pass_filenames: false
+        types_or: [rust]
+
+      - id: cargo-clippy
+        name: cargo clippy
+        entry: cargo clippy --all-targets --all-features -- -D warnings
+        language: system
+        pass_filenames: false
+        types_or: [rust]
+
+      - id: cargo-test
+        name: cargo test
+        entry: cargo test --all-features
+        language: system
+        pass_filenames: false
+        types_or: [rust]
+
+      - id: cargo-deny
+        name: cargo deny
+        entry: bash -c 'if command -v cargo-deny >/dev/null 2>&1; then cargo deny check; else echo "cargo-deny not installed; skipping"; fi'
+        language: system
+        pass_filenames: false
+        types_or: [rust]
+
+      - id: cargo-audit
+        name: cargo audit
+        entry: bash -c 'if command -v cargo-audit >/dev/null 2>&1; then cargo audit; else echo "cargo-audit not installed; skipping"; fi'
+        language: system
+        pass_filenames: false
+        types_or: [rust]
+
+      - id: cargo-machete
+        name: cargo machete
+        entry: bash -c 'if command -v cargo-machete >/dev/null 2>&1; then cargo machete; else echo "cargo-machete not installed; skipping"; fi'
+        language: system
+        pass_filenames: false
+        types_or: [rust]
