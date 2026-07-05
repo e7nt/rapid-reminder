@@ -139,10 +139,10 @@ Close the manual lifecycle before automating firing.
 
 Native desktop notifications, fully testable without a GUI.
 
-- [ ] `Notifier` trait: `notify(title, body) -> Result<(), NotifyError>`
-- [ ] `DesktopNotifier` via `notify-rust`
-- [ ] `FakeNotifier` recording calls, for tests
-- [ ] Failures logged and surfaced (used later by `doctor`)
+- [x] `Notifier` trait: `notify(title, body) -> Result<(), NotifyError>`
+- [x] `DesktopNotifier` via `notify-rust` (verified: delivers a real notification)
+- [x] `FakeNotifier` recording calls (Mutex-backed so it is `Sync` for the daemon)
+- [x] `NotifyError` typed; failures surfaced to callers (daemon/doctor use it)
 
 **Deliverable (testable):**
 ```bash
