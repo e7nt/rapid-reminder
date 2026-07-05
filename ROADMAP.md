@@ -208,10 +208,10 @@ pre-commit run --all-files     # all hooks pass
 
 ## Stage 10 — Open-source polish
 
-- [ ] `README.md` with animated/asciinema demo and quick start
-- [ ] `CONTRIBUTING.md` (esp. how to add fixtures)
-- [ ] Install instructions (`cargo install`, prebuilt binaries)
-- [ ] Release workflow (tags → built binaries)
+- [x] `README.md` with a terminal demo and quick start
+- [x] `CONTRIBUTING.md` (esp. how to add relative/absolute fixtures)
+- [x] Install instructions (`cargo install --path .`); dual MIT/Apache-2.0 licenses
+- [x] Release workflow (tags → built linux/macos binaries)
 
 **Deliverable (testable):**
 ```bash
