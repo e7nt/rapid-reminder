@@ -174,10 +174,14 @@ cargo test daemon
 
 Broaden the parser once the pipeline is proven end-to-end.
 
-- [ ] Absolute: `at 5pm`, `at 17:30`, `tomorrow at 9am`
-- [ ] Day phrases: `tomorrow morning`, `tonight`, `next monday at 10am`
-- [ ] Ambiguity handling: don't silently guess; downgrade `Confidence`
-- [ ] Grow fixtures toward **100+**; add `proptest` for generated relative inputs
+- [x] Absolute: `at 5pm`, `at 5 pm`, `at 17:30`, `at 5:30pm`, `at noon/midnight`, `tomorrow at 9am`
+- [x] Day phrases: `tomorrow morning`, `tonight`, `next monday at 10am`, weekdays, dayparts
+- [x] Ambiguity handling: daypart → Medium, bare `at 5` → Low; a day with no time errors (no guessing)
+- [x] Grew fixtures to **106** (relative + absolute); added `proptest` for generated relative durations
+
+> Also: extracted a shared `lex` module; `parse_reminder` tries relative then
+> falls back to absolute; fixed a CLI arg-parsing bug (`rr --color never list`)
+> by making the free-text reminder an `external_subcommand`.
 
 **Deliverable (testable):**
 ```bash

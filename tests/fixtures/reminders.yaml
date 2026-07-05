@@ -4,9 +4,12 @@
 #   - a success case with `expected: { offset_seconds, message, time_span, confidence }`
 #   - an error case with `error: <snake_case ParseError name>`
 #
-# `now` is an RFC 3339 timestamp; assertions compare a duration, so its zone is
-# irrelevant. `time_span` is the exact substring the parser marked as the time,
-# preserving the user's original casing.
+# Relative fixtures use `now` (an RFC 3339 instant) and assert `offset_seconds`,
+# which is timezone-invariant. Absolute fixtures use `now_local`
+# (`YYYY-MM-DD HH:MM` local wall clock) and assert `due_local`, so times like
+# `5pm` resolve deterministically regardless of the machine's timezone.
+# `time_span` is the exact substring the parser marked as the time, preserving
+# the user's original casing.
 #
 # This corpus is meant to grow. Group new phrases under a commented category so
 # contributors can see what each block is exercising.
@@ -245,15 +248,6 @@
   now: "2026-07-04T12:00:00+05:30"
   error: "missing_message"
 
-# Absolute-time phrasing is not supported until a later stage.
-- input: "tomorrow at 9am review PR"
-  now: "2026-07-04T12:00:00+05:30"
-  error: "missing_time"
-
-- input: "at 5pm call Sam"
-  now: "2026-07-04T12:00:00+05:30"
-  error: "missing_time"
-
 # Spelled-out numbers beyond a/an are not supported yet.
 - input: "in five mins check"
   now: "2026-07-04T12:00:00+05:30"
@@ -262,3 +256,200 @@
 - input: "in mins check"
   now: "2026-07-04T12:00:00+05:30"
   error: "missing_time"
+
+# ── Absolute time: `at <clock>` (now_local so `5pm` is deterministic) ─────────
+# Reference is Saturday 2026-07-04 08:00 local for every absolute fixture below.
+- input: "at 5pm call Sam"
+  now_local: "2026-07-04 08:00"
+  expected: { due_local: "2026-07-04 17:00", message: "call Sam", time_span: "5pm", confidence: "high" }
+
+- input: "at 9am standup"
+  now_local: "2026-07-04 08:00"
+  expected: { due_local: "2026-07-04 09:00", message: "standup", time_span: "9am", confidence: "high" }
+
+- input: "at 7am gym"
+  now_local: "2026-07-04 08:00"
+  expected: { due_local: "2026-07-05 07:00", message: "gym", time_span: "7am", confidence: "high" }
+
+- input: "at 17:30 check oven"
+  now_local: "2026-07-04 08:00"
+  expected: { due_local: "2026-07-04 17:30", message: "check oven", time_span: "17:30", confidence: "high" }
+
+- input: "at 5:30pm leave"
+  now_local: "2026-07-04 08:00"
+  expected: { due_local: "2026-07-04 17:30", message: "leave", time_span: "5:30pm", confidence: "high" }
+
+- input: "at 3:15pm sync"
+  now_local: "2026-07-04 08:00"
+  expected: { due_local: "2026-07-04 15:15", message: "sync", time_span: "3:15pm", confidence: "high" }
+
+- input: "at 5 pm call Sam"
+  now_local: "2026-07-04 08:00"
+  expected: { due_local: "2026-07-04 17:00", message: "call Sam", time_span: "5 pm", confidence: "high" }
+
+- input: "at noon lunch"
+  now_local: "2026-07-04 08:00"
+  expected: { due_local: "2026-07-04 12:00", message: "lunch", time_span: "noon", confidence: "high" }
+
+- input: "at midnight backup"
+  now_local: "2026-07-04 08:00"
+  expected: { due_local: "2026-07-05 00:00", message: "backup", time_span: "midnight", confidence: "high" }
+
+- input: "at 5 call Sam"
+  now_local: "2026-07-04 08:00"
+  expected: { due_local: "2026-07-05 05:00", message: "call Sam", time_span: "5", confidence: "low" }
+
+# ── Absolute time: day + clock/daypart ───────────────────────────────────────
+- input: "today at 5pm call Sam"
+  now_local: "2026-07-04 08:00"
+  expected: { due_local: "2026-07-04 17:00", message: "call Sam", time_span: "today at 5pm", confidence: "high" }
+
+- input: "tomorrow at 9am review PR"
+  now_local: "2026-07-04 08:00"
+  expected: { due_local: "2026-07-05 09:00", message: "review PR", time_span: "tomorrow at 9am", confidence: "high" }
+
+- input: "tonight check logs"
+  now_local: "2026-07-04 08:00"
+  expected: { due_local: "2026-07-04 21:00", message: "check logs", time_span: "tonight", confidence: "medium" }
+
+- input: "tomorrow morning review PR"
+  now_local: "2026-07-04 08:00"
+  expected: { due_local: "2026-07-05 09:00", message: "review PR", time_span: "tomorrow morning", confidence: "medium" }
+
+- input: "tomorrow evening water plants"
+  now_local: "2026-07-04 08:00"
+  expected: { due_local: "2026-07-05 18:00", message: "water plants", time_span: "tomorrow evening", confidence: "medium" }
+
+- input: "next monday at 10am follow up"
+  now_local: "2026-07-04 08:00"
+  expected: { due_local: "2026-07-06 10:00", message: "follow up", time_span: "next monday at 10am", confidence: "high" }
+
+- input: "monday at 9am kickoff"
+  now_local: "2026-07-04 08:00"
+  expected: { due_local: "2026-07-06 09:00", message: "kickoff", time_span: "monday at 9am", confidence: "high" }
+
+- input: "friday at 6pm drinks"
+  now_local: "2026-07-04 08:00"
+  expected: { due_local: "2026-07-10 18:00", message: "drinks", time_span: "friday at 6pm", confidence: "high" }
+
+- input: "sunday morning long run"
+  now_local: "2026-07-04 08:00"
+  expected: { due_local: "2026-07-05 09:00", message: "long run", time_span: "sunday morning", confidence: "medium" }
+
+- input: "remind me tomorrow at 9am to review PR"
+  now_local: "2026-07-04 08:00"
+  expected: { due_local: "2026-07-05 09:00", message: "review PR", time_span: "tomorrow at 9am", confidence: "high" }
+
+# ── Absolute time: error cases ───────────────────────────────────────────────
+- input: "tomorrow review PR"
+  now_local: "2026-07-04 08:00"
+  error: "missing_time"
+
+- input: "at teatime relax"
+  now_local: "2026-07-04 08:00"
+  error: "missing_time"
+
+- input: "at 5pm"
+  now_local: "2026-07-04 08:00"
+  error: "missing_message"
+
+# ── More relative fixtures (growing the corpus past 100) ─────────────────────
+- input: "in 4 mins ping"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 240, message: "ping", time_span: "4 mins", confidence: "high" }
+
+- input: "in 6 mins coffee"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 360, message: "coffee", time_span: "6 mins", confidence: "high" }
+
+- input: "in 8 mins tea"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 480, message: "tea", time_span: "8 mins", confidence: "high" }
+
+- input: "in 9 mins water"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 540, message: "water", time_span: "9 mins", confidence: "high" }
+
+- input: "in 12 mins call back"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 720, message: "call back", time_span: "12 mins", confidence: "high" }
+
+- input: "in 13 mins restart"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 780, message: "restart", time_span: "13 mins", confidence: "high" }
+
+- input: "in 14 mins deploy"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 840, message: "deploy", time_span: "14 mins", confidence: "high" }
+
+- input: "in 16 mins review logs"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 960, message: "review logs", time_span: "16 mins", confidence: "high" }
+
+- input: "in 18 mins stretch"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 1080, message: "stretch", time_span: "18 mins", confidence: "high" }
+
+- input: "in 35 mins lunch"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 2100, message: "lunch", time_span: "35 mins", confidence: "high" }
+
+- input: "in 50 mins call vendor"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 3000, message: "call vendor", time_span: "50 mins", confidence: "high" }
+
+- input: "in 75 mins check server"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 4500, message: "check server", time_span: "75 mins", confidence: "high" }
+
+- input: "in 5 hours dinner"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 18000, message: "dinner", time_span: "5 hours", confidence: "high" }
+
+- input: "in 10 hours sleep"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 36000, message: "sleep", time_span: "10 hours", confidence: "high" }
+
+- input: "in 1h snack"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 3600, message: "snack", time_span: "1h", confidence: "high" }
+
+- input: "in 5h review"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 18000, message: "review", time_span: "5h", confidence: "high" }
+
+- input: "in 20s quick check"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 20, message: "quick check", time_span: "20s", confidence: "high" }
+
+- input: "in 5 days pay rent"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 432000, message: "pay rent", time_span: "5 days", confidence: "high" }
+
+- input: "in 7 days weekly review"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 604800, message: "weekly review", time_span: "7 days", confidence: "high" }
+
+- input: "remind me in 25 mins to call the bank"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 1500, message: "call the bank", time_span: "25 mins", confidence: "high" }
+
+- input: "please remind me in 3 hours to take a break"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 10800, message: "take a break", time_span: "3 hours", confidence: "high" }
+
+- input: "ping me in 90 mins about the release"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 5400, message: "the release", time_span: "90 mins", confidence: "high" }
+
+- input: "in 2 hours 30 min meeting"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 7200, message: "30 min meeting", time_span: "2 hours", confidence: "high" }
+
+- input: "in 45 mins review the design doc"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 2700, message: "review the design doc", time_span: "45 mins", confidence: "high" }
+
+- input: "in 15 mins ☕ break"
+  now: "2026-07-04T12:00:00+05:30"
+  expected: { offset_seconds: 900, message: "☕ break", time_span: "15 mins", confidence: "high" }

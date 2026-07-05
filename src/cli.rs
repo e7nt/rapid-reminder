@@ -22,7 +22,7 @@ const DAEMON_POLL: Duration = Duration::from_secs(5);
 
 /// Set reliable reminders from messy human text without breaking terminal flow.
 #[derive(Debug, Parser)]
-#[command(name = "rr", version, about, args_conflicts_with_subcommands = true)]
+#[command(name = "rr", version, about)]
 pub struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
@@ -30,10 +30,6 @@ pub struct Cli {
     /// When to colorize output.
     #[arg(long, value_enum, default_value_t = ColorArg::Auto, global = true)]
     color: ColorArg,
-
-    /// Natural-language reminder text, e.g. `rr in 15 mins check build`.
-    #[arg(trailing_var_arg = true)]
-    words: Vec<String>,
 }
 
 #[derive(Debug, Subcommand)]
@@ -49,6 +45,12 @@ enum Command {
     Daemon,
     /// Check notification support, storage access, and daemon status.
     Doctor,
+    /// Set a reminder from natural language (the default action).
+    ///
+    /// This catch-all captures free text such as `rr in 15 mins check build`,
+    /// so a reminder can be typed without naming a subcommand.
+    #[command(external_subcommand)]
+    Remind(Vec<String>),
 }
 
 /// CLI-facing mirror of [`ColorMode`], kept here so the library stays free of a
@@ -80,7 +82,12 @@ pub fn run() -> Result<()> {
         Some(Command::Cancel { id }) => cmd_cancel(id),
         Some(Command::Daemon) => cmd_daemon(),
         Some(Command::Doctor) => not_yet("doctor"),
-        None => run_default(&cli.words, color),
+        Some(Command::Remind(words)) => cmd_remind(&words, color),
+        None => {
+            // No subcommand and no free text: show help.
+            let _ = Cli::command().print_help();
+            Ok(())
+        }
     }
 }
 
@@ -181,15 +188,8 @@ fn format_due(due: DateTime<Local>, now: DateTime<Local>) -> String {
     }
 }
 
-/// Handle `rr` with no subcommand: either free-form reminder text or bare help.
-fn run_default(words: &[String], color: ColorMode) -> Result<()> {
-    if words.is_empty() {
-        // A closed pipe (e.g. `rr | head`) is not an error worth surfacing, so
-        // the write result is deliberately ignored here.
-        let _ = Cli::command().print_help();
-        return Ok(());
-    }
-
+/// `rr <text>` — parse the free-form reminder text and store it.
+fn cmd_remind(words: &[String], color: ColorMode) -> Result<()> {
     let text = words.join(" ");
     let reminder = match parse_reminder(&text, Local::now()) {
         Ok(reminder) => reminder,

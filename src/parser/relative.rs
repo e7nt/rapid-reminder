@@ -12,16 +12,10 @@
 
 use chrono::{DateTime, Duration, Local};
 
+use crate::parser::lex::{Token, is_filler_prefix, split_leading_connector, tokenize};
 use crate::parser::spans::{ParsedSpan, SpanKind};
 use crate::parser::{Confidence, ParseError, ParsedReminder};
 use crate::time::TimeUnit;
-
-/// A whitespace-delimited token with its byte range in the original input.
-struct Token<'a> {
-    text: &'a str,
-    start: usize,
-    end: usize,
-}
 
 /// The recognized `in <count> <unit>` time expression and where it sits.
 struct TimeAnchor {
@@ -62,36 +56,6 @@ pub fn parse(input: &str, now: DateTime<Local>) -> Result<ParsedReminder, ParseE
         spans,
         confidence,
     })
-}
-
-/// Split `input` into whitespace-delimited tokens, preserving byte offsets.
-fn tokenize(input: &str) -> Vec<Token<'_>> {
-    let mut tokens = Vec::new();
-    let mut start: Option<usize> = None;
-
-    for (i, ch) in input.char_indices() {
-        if ch.is_whitespace() {
-            if let Some(s) = start.take() {
-                tokens.push(Token {
-                    text: &input[s..i],
-                    start: s,
-                    end: i,
-                });
-            }
-        } else if start.is_none() {
-            start = Some(i);
-        }
-    }
-
-    if let Some(s) = start {
-        tokens.push(Token {
-            text: &input[s..],
-            start: s,
-            end: input.len(),
-        });
-    }
-
-    tokens
 }
 
 /// Find the first `in <count> <unit>` expression in the token stream.
@@ -172,31 +136,6 @@ fn due_time(now: DateTime<Local>, anchor: &TimeAnchor) -> Result<DateTime<Local>
         .ok_or(ParseError::TimeOutOfRange)
 }
 
-/// If the first message token is a connector (`to`, `about`, `that`), peel it
-/// off so it becomes filler and is excluded from the message.
-fn split_leading_connector<'a, 'b>(
-    tokens: &'b [Token<'a>],
-) -> (Option<&'b Token<'a>>, &'b [Token<'a>]) {
-    if let Some(first) = tokens.first()
-        && is_connector(first.text)
-    {
-        return (Some(first), &tokens[1..]);
-    }
-    (None, tokens)
-}
-
-fn is_connector(word: &str) -> bool {
-    matches!(word.to_ascii_lowercase().as_str(), "to" | "about" | "that")
-}
-
-/// Words that count as recognizable structural filler before the time.
-fn is_known_filler(word: &str) -> bool {
-    matches!(
-        word.to_ascii_lowercase().as_str(),
-        "remind" | "reminder" | "me" | "please" | "ping" | "hey"
-    )
-}
-
 /// Build the span list, ordered by start offset for predictable rendering.
 fn build_spans(
     tokens: &[Token],
@@ -250,7 +189,7 @@ fn build_spans(
 fn confidence_for(tokens: &[Token], anchor: &TimeAnchor) -> Confidence {
     let prefix_all_known = tokens[..anchor.in_index]
         .iter()
-        .all(|token| is_known_filler(token.text));
+        .all(|token| is_filler_prefix(token.text));
 
     if prefix_all_known {
         Confidence::High
@@ -263,6 +202,23 @@ fn confidence_for(tokens: &[Token], anchor: &TimeAnchor) -> Confidence {
 mod tests {
     use super::*;
     use chrono::TimeZone;
+    use proptest::prelude::*;
+
+    proptest! {
+        /// For any count and unit, the parsed offset is exactly count × unit.
+        #[test]
+        fn relative_duration_offset_is_exact(count in 1i64..1_000_000, unit_idx in 0usize..4) {
+            let units = [("secs", 1i64), ("mins", 60), ("hours", 3_600), ("days", 86_400)];
+            let (word, seconds) = units[unit_idx];
+            let input = format!("in {count} {word} do the thing");
+            let reference = Local.with_ymd_and_hms(2026, 7, 4, 12, 0, 0).unwrap();
+
+            let parsed = parse(&input, reference).expect("generated input should parse");
+
+            prop_assert_eq!((parsed.due_at - reference).num_seconds(), count * seconds);
+            prop_assert_eq!(parsed.message, "do the thing");
+        }
+    }
 
     fn now() -> DateTime<Local> {
         Local.with_ymd_and_hms(2026, 7, 4, 12, 0, 0).unwrap()
