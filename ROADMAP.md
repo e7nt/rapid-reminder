@@ -156,10 +156,10 @@ cargo test notify          # fake notifier asserts title/body
 
 The piece that makes reminders actually arrive.
 
-- [ ] `rr daemon` polls `list_pending` at a sane interval
-- [ ] Fires only when due; `mark_fired` only after success; no duplicates
-- [ ] Clean shutdown on SIGINT/SIGTERM
-- [ ] Scheduling logic independent of CLI parsing; testable with fake clock + fake notifier
+- [x] `rr daemon` polls `list_pending` every 5s
+- [x] Fires only when due; `mark_fired` only after success; no duplicates (verified live)
+- [x] Clean shutdown on SIGINT/SIGTERM (signal-hook + interruptible sleep)
+- [x] `run_once(store, notifier, now)` is pure over time+notifier; 5 tests with fake clock + fake notifier
 
 **Deliverable (testable):**
 ```bash

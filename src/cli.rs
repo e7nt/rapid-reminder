@@ -4,12 +4,21 @@
 //! of scheduling logic. Some subcommands are still stubs; later stages wire them
 //! to real behavior.
 
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use std::time::Duration;
+
 use anyhow::Result;
 use chrono::{DateTime, Local};
 use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
+use rapid_reminder::daemon;
+use rapid_reminder::notify::DesktopNotifier;
 use rapid_reminder::parser::{Confidence, ParsedReminder, parse_reminder};
 use rapid_reminder::render::{ColorMode, render_highlighted};
 use rapid_reminder::storage::{Reminder, ReminderId, Store};
+
+/// How often the daemon checks for due reminders.
+const DAEMON_POLL: Duration = Duration::from_secs(5);
 
 /// Set reliable reminders from messy human text without breaking terminal flow.
 #[derive(Debug, Parser)]
@@ -69,10 +78,28 @@ pub fn run() -> Result<()> {
     match cli.command {
         Some(Command::List) => cmd_list(),
         Some(Command::Cancel { id }) => cmd_cancel(id),
-        Some(Command::Daemon) => not_yet("daemon"),
+        Some(Command::Daemon) => cmd_daemon(),
         Some(Command::Doctor) => not_yet("doctor"),
         None => run_default(&cli.words, color),
     }
+}
+
+/// `rr daemon` — poll for due reminders and fire them until interrupted.
+fn cmd_daemon() -> Result<()> {
+    let store = Store::open_default()?;
+    let notifier = DesktopNotifier;
+
+    let shutdown = Arc::new(AtomicBool::new(false));
+    signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&shutdown))?;
+    signal_hook::flag::register(signal_hook::consts::SIGTERM, Arc::clone(&shutdown))?;
+
+    println!(
+        "rr daemon started (checking every {}s). Press Ctrl-C to stop.",
+        DAEMON_POLL.as_secs()
+    );
+    daemon::run(&store, &notifier, DAEMON_POLL, &shutdown)?;
+    println!("rr daemon stopped.");
+    Ok(())
 }
 
 /// `rr list` — print the pending reminders as a table.
