@@ -103,12 +103,12 @@ NO_COLOR=1 ./target/debug/rr "in 15 mins check build"   # plain highlighted outp
 
 Persist reminders reliably with a stable, migratable schema.
 
-- [ ] `rusqlite` dependency; DB at platform data dir (`~/.local/share/rapid-reminder/reminders.db`)
-- [ ] `Reminder`, `ReminderId`, `ReminderStatus` types (SPEC §8)
-- [ ] Schema migration v1; stable user-visible IDs
-- [ ] `insert`, `list_pending`, `get`, `cancel`, `mark_fired`
-- [ ] Tests use a temp DB (no touching real data)
-- [ ] Wire `rr <text>` to actually store a reminder
+- [x] `rusqlite` dependency (bundled SQLite); DB at platform data dir via `directories`
+- [x] `Reminder`, `ReminderId`, `ReminderStatus` types (SPEC §8)
+- [x] Schema migration v1 (tracked via `user_version` pragma); stable user-visible IDs
+- [x] `insert`, `list_pending`, `get`, `cancel`, `mark_fired`
+- [x] Tests use in-memory + `tempfile` DBs (no touching real data)
+- [x] Wire `rr <text>` to actually store a reminder
 
 **Deliverable (testable):**
 ```bash

@@ -9,6 +9,7 @@ use chrono::Local;
 use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
 use rapid_reminder::parser::{Confidence, ParsedReminder, parse_reminder};
 use rapid_reminder::render::{ColorMode, render_highlighted};
+use rapid_reminder::storage::{ReminderId, Store};
 
 /// Set reliable reminders from messy human text without breaking terminal flow.
 #[derive(Debug, Parser)]
@@ -84,11 +85,8 @@ fn run_default(words: &[String], color: ColorMode) -> Result<()> {
     }
 
     let text = words.join(" ");
-    match parse_reminder(&text, Local::now()) {
-        Ok(reminder) => {
-            print_understood(&reminder, color);
-            Ok(())
-        }
+    let reminder = match parse_reminder(&text, Local::now()) {
+        Ok(reminder) => reminder,
         Err(error) => {
             eprintln!("{error}");
             if let Some(hint) = error.hint() {
@@ -96,16 +94,20 @@ fn run_default(words: &[String], color: ColorMode) -> Result<()> {
             }
             std::process::exit(1);
         }
-    }
+    };
+
+    let store = Store::open_default()?;
+    let id = store.insert(reminder.due_at, &reminder.message, Local::now())?;
+    print_set(&reminder, id, color);
+    Ok(())
 }
 
-/// Show what the parser understood, with the recognized parts highlighted.
-///
-/// Storage is not wired yet, so this deliberately says "Understood" rather than
-/// "Reminder set" — that promise is made once persistence lands.
-fn print_understood(reminder: &ParsedReminder, color: ColorMode) {
+/// Confirm a stored reminder, with the recognized parts highlighted.
+fn print_set(reminder: &ParsedReminder, id: ReminderId, color: ColorMode) {
     let highlighted = render_highlighted(&reminder.original, &reminder.spans, color);
 
+    println!("✓ Reminder set (#{id})");
+    println!();
     println!("Understood:");
     println!("  {highlighted}");
     println!();
