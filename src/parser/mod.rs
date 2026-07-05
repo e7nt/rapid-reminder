@@ -7,6 +7,7 @@
 
 pub mod absolute;
 pub mod errors;
+mod lex;
 pub mod relative;
 pub mod spans;
 
@@ -53,7 +54,13 @@ pub fn parse_reminder(input: &str, now: DateTime<Local>) -> Result<ParsedReminde
         return Err(ParseError::EmptyInput);
     }
 
-    relative::parse(input, now)
+    // Try relative phrasing first. Only fall back to absolute parsing when no
+    // relative time was found — a relative match that is merely missing its
+    // message should surface that error, not be retried as absolute.
+    match relative::parse(input, now) {
+        Err(ParseError::MissingTime) => absolute::parse(input, now),
+        other => other,
+    }
 }
 
 #[cfg(test)]

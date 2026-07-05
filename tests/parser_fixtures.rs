@@ -8,15 +8,26 @@
 //! A fixture describes either a successful parse (`expected:`) or an expected
 //! failure (`error:`) — exactly one of the two.
 
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Local, NaiveDateTime, TimeZone};
 use rapid_reminder::parser::{Confidence, ParseError, ParsedReminder, SpanKind, parse_reminder};
 use serde::Deserialize;
+
+/// The wall-clock format used by `now_local` and `due_local`.
+const LOCAL_FORMAT: &str = "%Y-%m-%d %H:%M";
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Fixture {
     input: String,
-    now: String,
+    /// A reference time as an RFC 3339 instant (used by relative fixtures, whose
+    /// assertions are duration-based and thus timezone-invariant).
+    #[serde(default)]
+    now: Option<String>,
+    /// A reference time as a local wall clock, `YYYY-MM-DD HH:MM` (used by
+    /// absolute fixtures so `5pm` resolves deterministically regardless of the
+    /// machine's timezone).
+    #[serde(default)]
+    now_local: Option<String>,
     #[serde(default)]
     expected: Option<Expected>,
     #[serde(default)]
@@ -26,7 +37,13 @@ struct Fixture {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Expected {
-    offset_seconds: i64,
+    /// Seconds between `now` and the due time (for relative fixtures).
+    #[serde(default)]
+    offset_seconds: Option<i64>,
+    /// The due time as a local wall clock, `YYYY-MM-DD HH:MM` (for absolute
+    /// fixtures).
+    #[serde(default)]
+    due_local: Option<String>,
     message: String,
     time_span: String,
     confidence: String,
@@ -61,7 +78,7 @@ fn all_fixtures_parse_as_expected() {
 
 /// Check one fixture, returning a human-readable reason on mismatch.
 fn check_fixture(fixture: &Fixture) -> Result<(), String> {
-    let now = parse_now(&fixture.now)?;
+    let now = resolve_now(fixture)?;
     let result = parse_reminder(&fixture.input, now);
 
     match (&fixture.expected, &fixture.error) {
@@ -71,12 +88,23 @@ fn check_fixture(fixture: &Fixture) -> Result<(), String> {
     }
 }
 
-/// Parse an RFC 3339 timestamp into local time. The wall-clock zone is
-/// irrelevant to the assertions because we compare a duration, not an instant.
-fn parse_now(raw: &str) -> Result<DateTime<Local>, String> {
-    DateTime::parse_from_rfc3339(raw)
-        .map(|dt| dt.with_timezone(&Local))
-        .map_err(|err| format!("invalid `now` {raw:?}: {err}"))
+/// Resolve a fixture's reference time from either `now` (an instant) or
+/// `now_local` (a local wall clock). Exactly one must be present.
+fn resolve_now(fixture: &Fixture) -> Result<DateTime<Local>, String> {
+    match (&fixture.now, &fixture.now_local) {
+        (Some(raw), None) => DateTime::parse_from_rfc3339(raw)
+            .map(|dt| dt.with_timezone(&Local))
+            .map_err(|err| format!("invalid `now` {raw:?}: {err}")),
+        (None, Some(raw)) => {
+            let naive = NaiveDateTime::parse_from_str(raw, LOCAL_FORMAT)
+                .map_err(|err| format!("invalid `now_local` {raw:?}: {err}"))?;
+            Local
+                .from_local_datetime(&naive)
+                .single()
+                .ok_or_else(|| format!("ambiguous `now_local` {raw:?}"))
+        }
+        _ => Err("fixture must have exactly one of `now` or `now_local`".to_string()),
+    }
 }
 
 fn check_success(
@@ -86,12 +114,22 @@ fn check_success(
 ) -> Result<(), String> {
     let reminder = result.map_err(|err| format!("expected a parse, got error: {err}"))?;
 
-    let offset = (reminder.due_at - now).num_seconds();
-    if offset != expected.offset_seconds {
-        return Err(format!(
-            "offset_seconds: expected {}, got {offset}",
-            expected.offset_seconds
-        ));
+    if expected.offset_seconds.is_none() && expected.due_local.is_none() {
+        return Err("expected must have `offset_seconds` or `due_local`".to_string());
+    }
+
+    if let Some(want) = expected.offset_seconds {
+        let offset = (reminder.due_at - now).num_seconds();
+        if offset != want {
+            return Err(format!("offset_seconds: expected {want}, got {offset}"));
+        }
+    }
+
+    if let Some(want) = &expected.due_local {
+        let got = reminder.due_at.format(LOCAL_FORMAT).to_string();
+        if &got != want {
+            return Err(format!("due_local: expected {want:?}, got {got:?}"));
+        }
     }
 
     if reminder.message != expected.message {
