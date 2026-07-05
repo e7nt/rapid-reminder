@@ -119,7 +119,7 @@ impl Store {
 }
 
 /// Build the default database path: `<data dir>/reminders.db`.
-fn default_db_path() -> Result<PathBuf, StorageError> {
+pub fn default_db_path() -> Result<PathBuf, StorageError> {
     let dirs = ProjectDirs::from("", "", "rapid-reminder").ok_or(StorageError::NoDataDir)?;
     Ok(dirs.data_dir().join("reminders.db"))
 }
