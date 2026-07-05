@@ -81,11 +81,14 @@ cargo test fixtures   # all 50 fixtures pass; adding a bad fixture fails loudly
 
 Turn parsing into a visible contract so users trust it.
 
-- [ ] `render_highlighted(input, spans, color) -> String`
-- [ ] `ColorMode { Auto, Always, Never }`; respect `NO_COLOR` and `--color`
-- [ ] Time span green, message cyan, filler dimmed (SPEC §7)
-- [ ] Never panics on malformed spans (skip/err safely)
-- [ ] Snapshot tests (`insta`) with color disabled
+- [x] `render_highlighted(input, spans, color) -> String`
+- [x] `ColorMode { Auto, Always, Never }`; respect `NO_COLOR` and `--color`
+- [x] Time span green, message cyan, filler dimmed (SPEC §7)
+- [x] Never panics on malformed spans (skip/err safely)
+- [x] Snapshot tests (`insta`) with color disabled
+
+> Also wired the `Understood:` block + `--color` flag into `rr <text>`; malformed
+> spans (out-of-bounds, off-boundary, reversed, overlapping) are all skipped.
 
 **Deliverable (testable):**
 ```bash
