@@ -10,7 +10,7 @@ pub mod sqlite;
 use chrono::{DateTime, Local};
 use thiserror::Error;
 
-pub use sqlite::Store;
+pub use sqlite::{Store, default_db_path};
 
 /// A stable, user-visible reminder identifier (the SQLite row id).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

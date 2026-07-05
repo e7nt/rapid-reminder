@@ -12,7 +12,7 @@ use anyhow::Result;
 use chrono::{DateTime, Local};
 use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
 use rapid_reminder::daemon;
-use rapid_reminder::notify::DesktopNotifier;
+use rapid_reminder::notify::{DesktopNotifier, Notifier};
 use rapid_reminder::parser::{Confidence, ParsedReminder, parse_reminder};
 use rapid_reminder::render::{ColorMode, render_highlighted};
 use rapid_reminder::storage::{Reminder, ReminderId, Store};
@@ -81,7 +81,7 @@ pub fn run() -> Result<()> {
         Some(Command::List) => cmd_list(),
         Some(Command::Cancel { id }) => cmd_cancel(id),
         Some(Command::Daemon) => cmd_daemon(),
-        Some(Command::Doctor) => not_yet("doctor"),
+        Some(Command::Doctor) => cmd_doctor(),
         Some(Command::Remind(words)) => cmd_remind(&words, color),
         None => {
             // No subcommand and no free text: show help.
@@ -228,10 +228,55 @@ fn print_set(reminder: &ParsedReminder, id: ReminderId, color: ColorMode) {
     }
 }
 
-/// Placeholder for subcommands that later stages implement.
-fn not_yet(command: &str) -> Result<()> {
-    println!("rr: `{command}` is not implemented yet.");
-    Ok(())
+/// `rr doctor` — check that storage and notifications work.
+///
+/// Sends a real test notification so the whole delivery path is exercised.
+/// Exits non-zero if any check fails, so it is usable in scripts.
+fn cmd_doctor() -> Result<()> {
+    println!("rr doctor");
+    println!();
+
+    let mut healthy = true;
+
+    match Store::open_default() {
+        Ok(store) => {
+            let pending = store.list_pending().map(|list| list.len());
+            let path = rapid_reminder::storage::default_db_path()
+                .map(|p| p.display().to_string())
+                .unwrap_or_else(|_| "<unknown>".to_string());
+            match pending {
+                Ok(count) => println!("  [ok]   storage: {path} ({count} pending)"),
+                Err(err) => {
+                    healthy = false;
+                    println!("  [FAIL] storage: opened {path} but could not read reminders: {err}");
+                }
+            }
+        }
+        Err(err) => {
+            healthy = false;
+            println!("  [FAIL] storage: {err}");
+        }
+    }
+
+    match DesktopNotifier.notify("Rapid Reminder", "notifications are working") {
+        Ok(()) => println!("  [ok]   notifications: sent a test notification"),
+        Err(err) => {
+            healthy = false;
+            println!("  [FAIL] notifications: {err}");
+        }
+    }
+
+    // The daemon has no persisted status yet; point the user at how to run it.
+    println!("  [--]   daemon: status is not tracked; start it with `rr daemon`");
+
+    println!();
+    if healthy {
+        println!("All checks passed.");
+        Ok(())
+    } else {
+        eprintln!("Some checks failed.");
+        std::process::exit(1);
+    }
 }
 
 #[cfg(test)]

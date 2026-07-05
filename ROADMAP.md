@@ -193,10 +193,10 @@ cargo test              # 100+ fixtures + property tests green
 
 ## Stage 9 — `doctor` & hardening
 
-- [ ] `rr doctor` checks notification support, storage access, daemon status
-- [ ] Wire full pre-commit (`fmt`, `clippy -D warnings`, `test`, `deny`/`audit`/`machete` if present)
-- [ ] GitHub Actions CI running the same checks
-- [ ] `cargo clippy --all-targets --all-features -- -D warnings` clean
+- [x] `rr doctor` checks notification support (sends a test), storage access + path, daemon note
+- [x] Pre-commit config present (`fmt`, `clippy -D warnings`, `test`, `deny`/`audit`/`machete` if installed)
+- [x] GitHub Actions CI running fmt + clippy + test on stable
+- [x] `cargo clippy --all-targets --all-features -- -D warnings` clean (throughout)
 
 **Deliverable (testable):**
 ```bash
