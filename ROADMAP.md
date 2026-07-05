@@ -122,9 +122,9 @@ cargo test storage
 
 Close the manual lifecycle before automating firing.
 
-- [ ] `rr list` — table of pending reminders (ID / Due / Message)
-- [ ] `rr cancel <id>` — marks cancelled, confirms
-- [ ] Snapshot tests for both outputs
+- [x] `rr list` — table of pending reminders (ID / Due / Message), humanized `Today`/`Tomorrow`
+- [x] `rr cancel <id>` — marks cancelled, confirms; missing id errors with exit 1
+- [x] Snapshot test for the table + unit tests for due humanizing
 
 **Deliverable (testable):**
 ```bash

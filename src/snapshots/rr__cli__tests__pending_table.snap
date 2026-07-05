@@ -1,0 +1,7 @@
+---
+source: src/cli.rs
+expression: "format_pending_table(&reminders, now)"
+---
+ID  Due             Message
+1   Today 14:45     check build
+2   Tomorrow 09:00  review PR
