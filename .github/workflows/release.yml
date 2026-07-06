@@ -18,8 +18,10 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-          - os: macos-latest
-            target: aarch64-apple-darwin
+          - os: macos-13
+            target: x86_64-apple-darwin      # Intel Macs
+          - os: macos-14
+            target: aarch64-apple-darwin     # Apple Silicon Macs
     steps:
       - uses: actions/checkout@v4
 
@@ -32,14 +34,35 @@ jobs:
         run: cargo build --release --locked --target ${{ matrix.target }}
 
       - name: Package
+        shell: bash
         run: |
           staging="rr-${{ github.ref_name }}-${{ matrix.target }}"
           mkdir "$staging"
           cp target/${{ matrix.target }}/release/rr "$staging/"
           cp README.md LICENSE-MIT LICENSE-APACHE "$staging/"
           tar czf "$staging.tar.gz" "$staging"
+          shasum -a 256 "$staging.tar.gz" > "$staging.tar.gz.sha256"
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
-          files: rr-*.tar.gz
+          files: |
+            rr-*.tar.gz
+            rr-*.tar.gz.sha256
+          body: |
+            ## Install
+
+            Download the archive for your platform, extract it, and put `rr` on your `PATH`.
+
+            **macOS** binaries are unsigned, so clear the quarantine flag after extracting:
+
+            ```sh
+            xattr -dr com.apple.quarantine rr
+            ./rr --help
+            ```
+
+            - Apple Silicon (M1/M2/M3): `aarch64-apple-darwin`
+            - Intel: `x86_64-apple-darwin`
+            - Linux: `x86_64-unknown-linux-gnu`
+
+            Run `rr daemon` in the background so reminders fire.
