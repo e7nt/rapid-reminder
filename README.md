@@ -1,5 +1,7 @@
 # Rapid Reminder (`rr`)
 
+[![CI](https://github.com/e7nt/rapid-reminder/actions/workflows/ci.yml/badge.svg)](https://github.com/e7nt/rapid-reminder/actions/workflows/ci.yml)
+
 > Set reliable reminders from messy human text without breaking terminal flow.
 
 Rapid Reminder is a terminal-native reminder tool written in Rust. Type a

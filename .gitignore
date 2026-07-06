@@ -1,4 +1,6 @@
 /target
 *.db
 **/*.rs.bk
-.claude/settings.local.json
+
+# Local Claude Code settings (machine-specific paths, personal permissions)
+/.claude/
