@@ -22,7 +22,7 @@ const DAEMON_POLL: Duration = Duration::from_secs(5);
 
 /// Set reliable reminders from messy human text without breaking terminal flow.
 #[derive(Debug, Parser)]
-#[command(name = "rr", version, about)]
+#[command(name = "rr", version, about, after_help = AFTER_HELP)]
 pub struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
@@ -31,6 +31,18 @@ pub struct Cli {
     #[arg(long, value_enum, default_value_t = ColorArg::Auto, global = true)]
     color: ColorArg,
 }
+
+/// Footer shown under `rr --help`. The primary action is setting a reminder from
+/// free text, which has no subcommand of its own, so it is explained here.
+const AFTER_HELP: &str = "\
+Set a reminder by typing it naturally — no subcommand needed:
+  rr in 15 mins check build
+  rr remind me in 2 hours to stretch
+  rr tomorrow at 9am review PR
+
+Rapid Reminder shows what it understood and sends a desktop notification when the
+reminder is due, so you can capture a thought and stay in your terminal flow.
+Run `rr daemon` in the background for notifications to fire.";
 
 #[derive(Debug, Subcommand)]
 enum Command {
