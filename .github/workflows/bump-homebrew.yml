@@ -1,0 +1,61 @@
+name: Bump Homebrew formula
+
+# Updates the formula in e7nt/homebrew-tap to point at a new release, so
+# `brew upgrade rapid-reminder` picks up new versions automatically.
+#
+# Requires a repository secret HOMEBREW_TAP_TOKEN: a token with contents:write
+# on e7nt/homebrew-tap (a fine-grained PAT scoped to that repo, or a classic PAT
+# with `repo`). The default GITHUB_TOKEN cannot push to another repository.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish to the tap (e.g. v0.1.0)"
+        required: true
+
+jobs:
+  bump:
+    name: Update tap formula
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve tag and version
+        id: meta
+        run: |
+          tag="${{ github.event.inputs.tag || github.ref_name }}"
+          url="https://github.com/${{ github.repository }}/archive/refs/tags/${tag}.tar.gz"
+          sha=$(curl -fsSL "$url" | shasum -a 256 | awk '{print $1}')
+          {
+            echo "tag=$tag"
+            echo "version=${tag#v}"
+            echo "url=$url"
+            echo "sha=$sha"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Checkout tap
+        uses: actions/checkout@v4
+        with:
+          repository: e7nt/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Update formula
+        run: |
+          f=Formula/rapid-reminder.rb
+          sed -i -E "s#^  url \".*\"#  url \"${{ steps.meta.outputs.url }}\"#" "$f"
+          sed -i -E "s#^  sha256 \".*\"#  sha256 \"${{ steps.meta.outputs.sha }}\"#" "$f"
+          echo "--- updated formula ---"
+          grep -E '^  (url|sha256)' "$f"
+
+      - name: Commit and push
+        run: |
+          git config user.name "e7nt"
+          git config user.email "257679244+admin-e7nt@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "Formula already up to date; nothing to commit."
+            exit 0
+          fi
+          git commit -am "rapid-reminder ${{ steps.meta.outputs.version }}"
+          git push
